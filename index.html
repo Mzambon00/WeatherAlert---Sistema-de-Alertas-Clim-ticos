@@ -1,0 +1,397 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeatherAlert - Notificações no Celular</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 50px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .search-box input:focus {
+            border-color: #667eea;
+        }
+
+        .search-box button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .search-box button:hover {
+            transform: scale(1.02);
+        }
+
+        .cidades-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .city-btn {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .city-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .resultado {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        .resultado.show {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .cidade-temp {
+            font-size: 3em;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .info-icon {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .info-label {
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .info-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .recomendacao {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 15px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            animation: slideIn 0.3s;
+            z-index: 1000;
+        }
+
+        .toast.error {
+            background: #f44336;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 0.9em;
+        }
+
+        .status.online {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status.offline {
+            background: #f44336;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌤️ WeatherAlert</h1>
+            <p>Pesquise qualquer cidade e receba a notificação no celular</p>
+        </div>
+
+        <div class="card">
+            <div class="search-box">
+                <input type="text" id="cidadeInput" placeholder="Ex: São Paulo, Rio de Janeiro, Belo Horizonte..." value="São Paulo">
+                <button id="btnBuscar">🔍 Buscar</button>
+            </div>
+
+            <div class="cidades-grid">
+                <button class="city-btn" data-cidade="São Paulo">📍 São Paulo</button>
+                <button class="city-btn" data-cidade="Rio de Janeiro">📍 Rio de Janeiro</button>
+                <button class="city-btn" data-cidade="Belo Horizonte">📍 Belo Horizonte</button>
+                <button class="city-btn" data-cidade="Porto Alegre">📍 Porto Alegre</button>
+                <button class="city-btn" data-cidade="Salvador">📍 Salvador</button>
+                <button class="city-btn" data-cidade="Curitiba">📍 Curitiba</button>
+                <button class="city-btn" data-cidade="Recife">📍 Recife</button>
+                <button class="city-btn" data-cidade="Fortaleza">📍 Fortaleza</button>
+                <button class="city-btn" data-cidade="Manaus">📍 Manaus</button>
+                <button class="city-btn" data-cidade="Brasília">📍 Brasília</button>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 15px;">Enviando notificação para seu celular...</p>
+        </div>
+
+        <div class="card resultado" id="resultado">
+            <h2 id="cidadeNome" style="text-align: center;"></h2>
+            <div class="cidade-temp" id="temperatura"></div>
+            
+            <div class="info-row">
+                <div class="info-item">
+                    <div class="info-icon">📝</div>
+                    <div class="info-label">Condição</div>
+                    <div class="info-value" id="condicao">---</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon">💧</div>
+                    <div class="info-label">Umidade</div>
+                    <div class="info-value" id="umidade">---</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon">💨</div>
+                    <div class="info-label">Vento</div>
+                    <div class="info-value" id="vento">---</div>
+                </div>
+            </div>
+
+            <div class="recomendacao" id="recomendacao">
+                ✅ Notificação enviada para seu celular!
+            </div>
+        </div>
+
+        <div class="status" id="status">🔌 Verificando conexão...</div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000';
+
+        async function pesquisarCidade(cidade) {
+            if (!cidade) return;
+            
+            // Mostrar loading
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('resultado').classList.remove('show');
+            
+            try {
+                console.log(`Pesquisando: ${cidade}`);
+                const response = await fetch(`${API_URL}/pesquisar/${encodeURIComponent(cidade)}`);
+                const data = await response.json();
+                
+                if (data.sucesso) {
+                    // Mostrar resultado
+                    document.getElementById('cidadeNome').innerHTML = `📍 ${data.cidade}`;
+                    document.getElementById('temperatura').innerHTML = `${data.temperatura}°C`;
+                    document.getElementById('condicao').innerHTML = data.descricao || 'Clima monitorado';
+                    document.getElementById('umidade').innerHTML = `${data.umidade || 65}%`;
+                    document.getElementById('vento').innerHTML = `${data.vento || 12} km/h`;
+                    
+                    let recomendacaoTexto = '';
+                    if (data.alerta === 'calor') {
+                        recomendacaoTexto = '🔥 ALERTA DE CALOR! Beba água e evite o sol.';
+                    } else if (data.alerta === 'frio') {
+                        recomendacaoTexto = '❄️ ALERTA DE FRIO! Agasalhe-se bem.';
+                    } else {
+                        recomendacaoTexto = '✅ Notificação enviada para seu celular!';
+                    }
+                    document.getElementById('recomendacao').innerHTML = recomendacaoTexto;
+                    
+                    document.getElementById('resultado').classList.add('show');
+                    mostrarToast(`✅ Notificação enviada para ${cidade}!`, 'success');
+                } else {
+                    throw new Error('Erro na resposta');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarToast(`❌ Erro ao consultar ${cidade}. Verifique o servidor.`, 'error');
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+            }
+        }
+
+        function mostrarToast(mensagem, tipo = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${tipo === 'error' ? 'error' : ''}`;
+            toast.textContent = mensagem;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        // Eventos
+        document.getElementById('btnBuscar').addEventListener('click', () => {
+            const cidade = document.getElementById('cidadeInput').value.trim();
+            if (cidade) pesquisarCidade(cidade);
+            else mostrarToast('Digite o nome de uma cidade', 'error');
+        });
+
+        document.querySelectorAll('.city-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const cidade = btn.getAttribute('data-cidade');
+                document.getElementById('cidadeInput').value = cidade;
+                pesquisarCidade(cidade);
+            });
+        });
+
+        document.getElementById('cidadeInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const cidade = document.getElementById('cidadeInput').value.trim();
+                if (cidade) pesquisarCidade(cidade);
+            }
+        });
+
+        // Verificar conexão com o servidor
+        async function verificarConexao() {
+            try {
+                const response = await fetch(`${API_URL}/`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const statusDiv = document.getElementById('status');
+                    statusDiv.innerHTML = '✅ Conectado ao WeatherAlert - Celular pronto para receber alertas!';
+                    statusDiv.className = 'status online';
+                    mostrarToast('✅ Conectado ao servidor!', 'success');
+                } else {
+                    throw new Error('Servidor não respondeu');
+                }
+            } catch (error) {
+                const statusDiv = document.getElementById('status');
+                statusDiv.innerHTML = '⚠️ Servidor offline - Execute "python server_completo.py"';
+                statusDiv.className = 'status offline';
+                mostrarToast('⚠️ Servidor não está rodando!', 'error');
+            }
+        }
+
+        // Carregar clima inicial
+        verificarConexao();
+        setTimeout(() => {
+            pesquisarCidade('São Paulo');
+        }, 500);
+    </script>
+</body>
+</html>
